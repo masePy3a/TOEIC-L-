@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TOEIC RTLT: 機能表現クイズ</title>
+<title>TOEIC RTLT: 機能表現クイズ（音声機能付き）</title>
 <style>
 /* スマホ向けに使いやすいシンプルなデザイン */
 body {
@@ -21,6 +21,7 @@ margin: 0 auto;
 display: flex;
 gap: 10px;
 margin-bottom: 20px;
+flex-wrap: wrap;
 }
 .tab-buttons button {
 padding: 10px 20px;
@@ -48,18 +49,57 @@ padding: 20px;
 border-radius: 12px;
 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
+.question-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 15px;
+gap: 10px;
+}
 .question-text {
 font-size: 1.1em;
 margin-bottom: 25px;
 padding: 15px;
 border-left: 5px solid #007bff;
 background-color: #e9f0ff;
+flex: 1;
 }
-.options button {
-display: block;
-width: 100%;
-padding: 15px;
+.voice-button {
+background-color: #28a745;
+color: white;
+border: none;
+border-radius: 8px;
+padding: 10px 15px;
+cursor: pointer;
+font-size: 1em;
+transition: background-color 0.3s;
+display: flex;
+align-items: center;
+gap: 5px;
+white-space: nowrap;
+}
+.voice-button:hover {
+background-color: #218838;
+}
+.voice-button:disabled {
+background-color: #6c757d;
+cursor: not-allowed;
+}
+.voice-button.playing {
+background-color: #ff6b6b;
+}
+.options {
+margin-bottom: 15px;
+}
+.option-item {
+display: flex;
+gap: 10px;
 margin-bottom: 10px;
+align-items: center;
+}
+.option-item button {
+flex: 1;
+padding: 15px;
 border: 2px solid #ccc;
 border-radius: 8px;
 background-color: #fff;
@@ -68,8 +108,14 @@ cursor: pointer;
 transition: background-color 0.3s, border-color 0.3s;
 text-align: left;
 }
-.options button:hover:not(:disabled) {
+.option-item button:hover:not(:disabled) {
 background-color: #f0f0f0;
+}
+.option-item .voice-button-small {
+padding: 8px 12px;
+font-size: 0.9em;
+min-width: 50px;
+justify-content: center;
 }
 .feedback {
 margin-top: 20px;
@@ -232,29 +278,61 @@ border-radius: 8px;
 margin-bottom: 15px;
 display: none;
 }
+.voice-settings {
+background-color: #f9f9f9;
+padding: 15px;
+border-radius: 8px;
+margin-bottom: 15px;
+}
+.voice-settings label {
+display: block;
+margin-bottom: 10px;
+font-weight: bold;
+}
+.voice-settings select {
+width: 100%;
+padding: 8px;
+border: 1px solid #ccc;
+border-radius: 4px;
+}
 </style>
 </head>
 <body>
 
 <div class="container">
-<h1>TOEIC L495 トレーニング</h1>
+<h1>🎤 TOEIC L495 トレーニング（音声機能付き）</h1>
 
 <!-- タブボタン -->
 <div class="tab-buttons">
 <button class="tab-btn active" onclick="switchTab('quiz')">クイズ</button>
 <button class="tab-btn" onclick="switchTab('edit')">問題の管理</button>
+<button class="tab-btn" onclick="switchTab('voice-settings')">音声設定</button>
 <button class="tab-btn" onclick="switchTab('settings')">データ</button>
 </div>
 
 <!-- クイズタブ -->
 <div class="tab-content active" id="quiz">
 <div class="quiz-container">
+<div class="question-header">
 <div class="question-text" id="question-text">クイズがここに表示されます。</div>
+<button class="voice-button" id="question-voice-btn" onclick="speakQuestion()" title="問題を読み上げます">
+🔊
+</button>
+</div>
 
 <div class="options" id="options">
+<div class="option-item">
 <button onclick="checkAnswer(0)">選択肢 A</button>
+<button class="voice-button voice-button-small" onclick="speakOption(0)" title="選択肢を読み上げます">🔊</button>
+</div>
+<div class="option-item">
 <button onclick="checkAnswer(1)">選択肢 B</button>
+<button class="voice-button voice-button-small" onclick="speakOption(1)" title="選択肢を読み上げます">🔊</button>
+</div>
+<div class="option-item">
 <button onclick="checkAnswer(2)">選択肢 C</button>
+<button class="voice-button voice-button-small" onclick="speakOption(2)" title="選択肢を読み上げます">🔊</button>
+</div>
 </div>
 
 <div class="feedback" id="feedback">フィードバックメッセージ</div>
@@ -308,6 +386,52 @@ display: none;
 </div>
 </div>
 
+<!-- 音声設定タブ -->
+<div class="tab-content" id="voice-settings">
+<div class="quiz-container">
+<h2>🎤 音声設定</h2>
+<div class="success-message" id="success-message-voice"></div>
+
+<div class="voice-settings">
+<label for="voice-lang">言語を選択：</label>
+<select id="voice-lang" onchange="updateVoiceLang()">
+<option value="en-US">英語（アメリカ）- 推奨</option>
+<option value="en-GB">英語（イギリス）</option>
+<option value="en-AU">英語（オーストラリア）</option>
+<option value="ja-JP">日本語</option>
+</select>
+</div>
+
+<div class="voice-settings">
+<label for="voice-rate">話速：</label>
+<input type="range" id="voice-rate" min="0.5" max="2" step="0.1" value="0.9" onchange="updateVoiceRate()">
+<span id="rate-display">0.9x</span>
+</div>
+
+<div class="voice-settings">
+<label for="voice-pitch">ピッチ：</label>
+<input type="range" id="voice-pitch" min="0.5" max="2" step="0.1" value="1.1" onchange="updateVoicePitch()">
+<span id="pitch-display">1.1</span>
+</div>
+
+<div class="button-group">
+<button class="btn-primary" onclick="testVoice()">音声テスト</button>
+<button class="btn-secondary" onclick="resetVoiceSettings()">デフォルトに戻す</button>
+</div>
+
+<div style="margin-top: 20px; padding: 15px; background-color: #e9f0ff; border-radius: 8px;">
+<h3>📝 使い方</h3>
+<ul>
+<li>✅ デフォルトは流暢な英語発音（アメリカ英語）に最適化されています</li>
+<li>🎤 「クイズ」タブで問題の 🔊 ボタンをクリックすると、自動判別で読み上げます</li>
+<li>🌐 英語テキストは流暢な英語で、日本語は日本語で読み上げ</li>
+<li>⚙️ 言語、速度、ピッチをここで自由に調整できます</li>
+<li>💾 設定は自動的に保存されます</li>
+</ul>
+</div>
+</div>
+</div>
+
 <!-- 設定タブ -->
 <div class="tab-content" id="settings">
 <div class="quiz-container">
@@ -335,7 +459,7 @@ display: none;
 
 <script>
 // ========================================================================
-// TOEIC L495 トレーニング - 改訂版（問題更新機能付き）
+// TOEIC L495 トレーニング - 音声機能付き改訂版
 // ========================================================================
 
 // デフォルトの問題データ
@@ -360,16 +484,26 @@ answerIndex: 2
 // グローバル変数
 let quizData = [];
 let currentQuestionIndex = 0;
-let editingIndex = -1; // 編集中のインデックス（-1は新規作成）
+let editingIndex = -1;
+let isSpeaking = false;
 
 // ストレージキー
 const STORAGE_KEY = 'toeic_quiz_data';
+const VOICE_SETTINGS_KEY = 'toeic_voice_settings';
+
+// デフォルト音声設定
+let voiceSettings = {
+lang: 'en-US',
+rate: 0.9,
+pitch: 1.1
+};
 
 // ========================================================================
 // 初期化と基本機能
 // ========================================================================
 
 window.onload = function() {
+loadVoiceSettings();
 loadQuizData();
 loadQuestion();
 renderQuestionsList();
@@ -395,20 +529,168 @@ function saveQuizData() {
 localStorage.setItem(STORAGE_KEY, JSON.stringify(quizData));
 }
 
+function loadVoiceSettings() {
+const stored = localStorage.getItem(VOICE_SETTINGS_KEY);
+if (stored) {
+try {
+voiceSettings = JSON.parse(stored);
+} catch (e) {
+console.error('音声設定の読み込みに失敗しました', e);
+}
+}
+updateVoiceSettingsUI();
+}
+
+function saveVoiceSettings() {
+localStorage.setItem(VOICE_SETTINGS_KEY, JSON.stringify(voiceSettings));
+}
+
+function updateVoiceSettingsUI() {
+document.getElementById('voice-lang').value = voiceSettings.lang;
+document.getElementById('voice-rate').value = voiceSettings.rate;
+document.getElementById('voice-pitch').value = voiceSettings.pitch;
+document.getElementById('rate-display').textContent = voiceSettings.rate.toFixed(1) + 'x';
+document.getElementById('pitch-display').textContent = voiceSettings.pitch.toFixed(1);
+}
+
+// ========================================================================
+// 音声機能
+// ========================================================================
+
+function speak(text) {
+if (isSpeaking) {
+window.speechSynthesis.cancel();
+isSpeaking = false;
+return;
+}
+
+const utterance = new SpeechSynthesisUtterance(text);
+
+// テキストから言語を自動判別
+let detectedLang = voiceSettings.lang;
+const hasEnglish = /[a-zA-Z]/.test(text);
+const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/.test(text);
+
+if (hasEnglish && !hasJapanese) {
+// 英語のみの場合は英語で読み上げ
+detectedLang = 'en-US';
+utterance.rate = 0.9;  // 流暢な英語速度
+utterance.pitch = 1.1; // 自然なピッチ
+} else if (hasJapanese && !hasEnglish) {
+// 日本語のみの場合は日本語で読み上げ
+detectedLang = 'ja-JP';
+utterance.rate = 1.0;
+utterance.pitch = 1.0;
+} else {
+// 混合テキストの場合は設定言語を使用
+utterance.rate = voiceSettings.rate;
+utterance.pitch = voiceSettings.pitch;
+}
+
+utterance.lang = detectedLang;
+
+utterance.onstart = function() {
+isSpeaking = true;
+updateButtonStates();
+};
+
+utterance.onend = function() {
+isSpeaking = false;
+updateButtonStates();
+};
+
+utterance.onerror = function(event) {
+console.error('音声再生エラー:', event);
+isSpeaking = false;
+updateButtonStates();
+};
+
+window.speechSynthesis.speak(utterance);
+}
+
+function updateButtonStates() {
+const questionBtn = document.getElementById('question-voice-btn');
+if (questionBtn) {
+if (isSpeaking) {
+questionBtn.classList.add('playing');
+questionBtn.textContent = '⏹️';
+} else {
+questionBtn.classList.remove('playing');
+questionBtn.textContent = '🔊';
+}
+}
+}
+
+function speakQuestion() {
+if (quizData.length === 0) return;
+const currentQuiz = quizData[currentQuestionIndex];
+const cleanQuestion = currentQuiz.question
+.replace(/<[^>]*>/g, '')
+.replace(/\*\*/g, '')
+.replace(/&nbsp;/g, ' ')
+.replace(/&lt;/g, '<')
+.replace(/&gt;/g, '>')
+.replace(/&quot;/g, '"')
+.replace(/&#39;/g, "'");
+speak(cleanQuestion);
+}
+
+function speakOption(index) {
+if (quizData.length === 0) return;
+const currentQuiz = quizData[currentQuestionIndex];
+if (index < currentQuiz.options.length) {
+speak(currentQuiz.options[index]);
+}
+}
+
+function testVoice() {
+const lang = document.getElementById('voice-lang').value;
+const testText = lang.includes('ja') ? 'これはテストです' : 'This is a test';
+speak(testText);
+showMessage('success', 'テスト音声を再生しています...', 'voice');
+}
+
+function updateVoiceLang() {
+voiceSettings.lang = document.getElementById('voice-lang').value;
+saveVoiceSettings();
+}
+
+function updateVoiceRate() {
+const rate = parseFloat(document.getElementById('voice-rate').value);
+voiceSettings.rate = rate;
+document.getElementById('rate-display').textContent = rate.toFixed(1) + 'x';
+saveVoiceSettings();
+}
+
+function updateVoicePitch() {
+const pitch = parseFloat(document.getElementById('voice-pitch').value);
+voiceSettings.pitch = pitch;
+document.getElementById('pitch-display').textContent = pitch.toFixed(1);
+saveVoiceSettings();
+}
+
+function resetVoiceSettings() {
+voiceSettings = {
+lang: 'en-US',
+rate: 0.9,
+pitch: 1.1
+};
+saveVoiceSettings();
+updateVoiceSettingsUI();
+showMessage('success', '音声設定をリセットしました（流暢な英語発音）', 'voice');
+}
+
 // ========================================================================
 // タブ切り替え機能
 // ========================================================================
 
 function switchTab(tabName) {
-// すべてのタブコンテンツを非表示
 document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
 document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 
-// 指定されたタブを表示
 document.getElementById(tabName).classList.add('active');
 event.target.classList.add('active');
 
-// 編集タブを切り替えた場合、リストを更新
 if (tabName === 'edit') {
 renderQuestionsList();
 }
@@ -424,6 +706,7 @@ document.getElementById('question-text').textContent = '問題がまだ登録さ
 document.getElementById('options').innerHTML = '';
 document.getElementById('next-button').style.display = 'none';
 document.getElementById('feedback').style.display = 'none';
+document.getElementById('question-voice-btn').style.display = 'none';
 return;
 }
 
@@ -432,6 +715,7 @@ document.getElementById('question-text').textContent = `全${quizData.length}問
 document.getElementById('options').innerHTML = '';
 document.getElementById('next-button').style.display = 'none';
 document.getElementById('feedback').style.display = 'none';
+document.getElementById('question-voice-btn').style.display = 'none';
 return;
 }
 
@@ -439,21 +723,27 @@ const currentQuiz = quizData[currentQuestionIndex];
 document.getElementById('question-text').textContent = currentQuiz.question;
 document.getElementById('next-button').textContent = `次の問題へ (${currentQuestionIndex + 1}/${quizData.length})`;
 
-const optionButtons = document.getElementById('options').children;
-for (let i = 0; i < optionButtons.length; i++) {
-optionButtons[i].textContent = currentQuiz.options[i];
-optionButtons[i].disabled = false;
-optionButtons[i].classList.remove('correct', 'incorrect');
+const optionsDiv = document.getElementById('options');
+optionsDiv.innerHTML = '';
+for (let i = 0; i < currentQuiz.options.length; i++) {
+const optionItem = document.createElement('div');
+optionItem.className = 'option-item';
+optionItem.innerHTML = `
+<button onclick="checkAnswer(${i})">${currentQuiz.options[i]}</button>
+<button class="voice-button voice-button-small" onclick="speakOption(${i})" title="選択肢を読み上げます">🔊</button>
+`;
+optionsDiv.appendChild(optionItem);
 }
 
 document.getElementById('next-button').style.display = 'none';
 document.getElementById('feedback').style.display = 'none';
+document.getElementById('question-voice-btn').style.display = 'block';
 }
 
 function checkAnswer(selectedIndex) {
 const currentQuiz = quizData[currentQuestionIndex];
 const feedbackDiv = document.getElementById('feedback');
-const optionButtons = document.getElementById('options').children;
+const optionButtons = document.querySelectorAll('.option-item button:first-child');
 
 for (let btn of optionButtons) {
 btn.disabled = true;
@@ -516,7 +806,6 @@ const option1 = document.getElementById('option-1').value.trim();
 const option2 = document.getElementById('option-2').value.trim();
 const answerRadio = document.querySelector('input[name="correct-answer"]:checked');
 
-// バリデーション
 if (!question) {
 showMessage('error', '問題文を入力してください。', 'edit');
 return;
@@ -537,11 +826,9 @@ answerIndex: parseInt(answerRadio.value)
 };
 
 if (editingIndex === -1) {
-// 新規追加
 quizData.push(newQuiz);
 showMessage('success', '問題を追加しました！', 'edit');
 } else {
-// 編集
 quizData[editingIndex] = newQuiz;
 showMessage('success', '問題を更新しました！', 'edit');
 }
@@ -549,7 +836,7 @@ showMessage('success', '問題を更新しました！', 'edit');
 saveQuizData();
 cancelEdit();
 renderQuestionsList();
-loadQuestion(); // クイズ表示も更新
+loadQuestion();
 }
 
 function cancelEdit() {
@@ -564,7 +851,6 @@ saveQuizData();
 renderQuestionsList();
 showMessage('success', '問題を削除しました！', 'edit');
 
-// クイズ表示中の問題を削除した場合は調整
 if (currentQuestionIndex >= quizData.length) {
 currentQuestionIndex = Math.max(0, quizData.length - 1);
 }
@@ -666,14 +952,16 @@ loadQuestion();
 // ========================================================================
 
 function showMessage(type, message, tab) {
-const elementId = tab === 'settings' ? `${type}-message-settings` : `${type}-message`;
+const elementId = tab === 'settings' ? `${type}-message-settings` : tab === 'voice' ? `${type}-message-voice` : `${type}-message`;
 const element = document.getElementById(elementId);
+if (element) {
 element.textContent = message;
 element.style.display = 'block';
 
 setTimeout(() => {
 element.style.display = 'none';
 }, 3000);
+}
 }
 </script>
 
