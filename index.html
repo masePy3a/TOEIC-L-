@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOEIC RTLT: 機能表現クイズ</title>
+<style>
+/* スマホ向けに使いやすいシンプルなデザイン */
+body {
+font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+margin: 0;
+padding: 20px;
+background-color: #f4f7f6;
+color: #333;
+}
+.container {
+max-width: 700px;
+margin: 0 auto;
+}
+.tab-buttons {
+display: flex;
+gap: 10px;
+margin-bottom: 20px;
+}
+.tab-buttons button {
+padding: 10px 20px;
+border: 2px solid #ccc;
+border-radius: 8px;
+background-color: #fff;
+cursor: pointer;
+font-size: 1em;
+transition: background-color 0.3s;
+}
+.tab-buttons button.active {
+background-color: #007bff;
+color: white;
+border-color: #007bff;
+}
+.tab-content {
+display: none;
+}
+.tab-content.active {
+display: block;
+}
+.quiz-container {
+background-color: #ffffff;
+padding: 20px;
+border-radius: 12px;
+box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.question-text {
+font-size: 1.1em;
+margin-bottom: 25px;
+padding: 15px;
+border-left: 5px solid #007bff;
+background-color: #e9f0ff;
+}
+.options button {
+display: block;
+width: 100%;
+padding: 15px;
+margin-bottom: 10px;
+border: 2px solid #ccc;
+border-radius: 8px;
+background-color: #fff;
+font-size: 1em;
+cursor: pointer;
+transition: background-color 0.3s, border-color 0.3s;
+text-align: left;
+}
+.options button:hover:not(:disabled) {
+background-color: #f0f0f0;
+}
+.feedback {
+margin-top: 20px;
+padding: 10px;
+border-radius: 8px;
+font-weight: bold;
+display: none;
+}
+.correct {
+background-color: #d4edda;
+color: #155724;
+}
+.incorrect {
+background-color: #f8d7da;
+color: #721c24;
+}
+.next-button {
+display: none;
+width: 100%;
+padding: 15px;
+background-color: #28a745;
+color: white;
+border: none;
+border-radius: 8px;
+font-size: 1.1em;
+cursor: pointer;
+margin-top: 20px;
+}
+/* 編集フォームのスタイル */
+.form-group {
+margin-bottom: 20px;
+}
+.form-group label {
+display: block;
+font-weight: bold;
+margin-bottom: 8px;
+color: #333;
+}
+.form-group input,
+.form-group textarea {
+width: 100%;
+padding: 10px;
+border: 1px solid #ccc;
+border-radius: 8px;
+font-size: 1em;
+box-sizing: border-box;
+font-family: inherit;
+}
+.form-group textarea {
+resize: vertical;
+min-height: 80px;
+}
+.option-group {
+display: flex;
+gap: 10px;
+margin-bottom: 10px;
+align-items: center;
+}
+.option-group input {
+flex: 1;
+}
+.option-group label {
+margin: 0;
+display: flex;
+align-items: center;
+gap: 5px;
+}
+.option-group input[type="radio"] {
+width: auto;
+margin: 0;
+}
+.button-group {
+display: flex;
+gap: 10px;
+}
+.button-group button {
+flex: 1;
+padding: 12px;
+border: none;
+border-radius: 8px;
+font-size: 1em;
+cursor: pointer;
+}
+.btn-primary {
+background-color: #007bff;
+color: white;
+}
+.btn-primary:hover {
+background-color: #0056b3;
+}
+.btn-danger {
+background-color: #dc3545;
+color: white;
+}
+.btn-danger:hover {
+background-color: #a02830;
+}
+.btn-secondary {
+background-color: #6c757d;
+color: white;
+}
+.btn-secondary:hover {
+background-color: #545b62;
+}
+.question-item {
+background-color: #f9f9f9;
+padding: 15px;
+border-radius: 8px;
+margin-bottom: 15px;
+border-left: 4px solid #007bff;
+}
+.question-item-text {
+font-weight: bold;
+margin-bottom: 10px;
+}
+.question-item-options {
+margin-bottom: 10px;
+font-size: 0.95em;
+color: #555;
+}
+.question-item-actions {
+display: flex;
+gap: 10px;
+}
+.question-item-actions button {
+flex: 1;
+padding: 8px;
+border: none;
+border-radius: 6px;
+cursor: pointer;
+font-size: 0.9em;
+}
+.btn-edit {
+background-color: #17a2b8;
+color: white;
+}
+.btn-edit:hover {
+background-color: #138496;
+}
+.btn-delete {
+background-color: #dc3545;
+color: white;
+}
+.btn-delete:hover {
+background-color: #a02830;
+}
+.success-message {
+background-color: #d4edda;
+color: #155724;
+padding: 10px;
+border-radius: 8px;
+margin-bottom: 15px;
+display: none;
+}
+.error-message {
+background-color: #f8d7da;
+color: #721c24;
+padding: 10px;
+border-radius: 8px;
+margin-bottom: 15px;
+display: none;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<h1>TOEIC L495 トレーニング</h1>
+
+<!-- タブボタン -->
+<div class="tab-buttons">
+<button class="tab-btn active" onclick="switchTab('quiz')">クイズ</button>
+<button class="tab-btn" onclick="switchTab('edit')">問題の管理</button>
+<button class="tab-btn" onclick="switchTab('settings')">データ</button>
+</div>
+
+<!-- クイズタブ -->
+<div class="tab-content active" id="quiz">
+<div class="quiz-container">
+<div class="question-text" id="question-text">クイズがここに表示されます。</div>
+
+<div class="options" id="options">
+<button onclick="checkAnswer(0)">選択肢 A</button>
+<button onclick="checkAnswer(1)">選択肢 B</button>
+<button onclick="checkAnswer(2)">選択肢 C</button>
+</div>
+
+<div class="feedback" id="feedback">フィードバックメッセージ</div>
+
+<button class="next-button" id="next-button" onclick="loadNextQuestion()">次の問題へ (1/5)</button>
+</div>
+</div>
+
+<!-- 編集タブ -->
+<div class="tab-content" id="edit">
+<div class="quiz-container">
+<h2>問題の管理</h2>
+<div class="success-message" id="success-message"></div>
+<div class="error-message" id="error-message"></div>
+
+<div class="button-group">
+<button class="btn-primary" onclick="showAddForm()">新しい問題を追加</button>
+</div>
+
+<div id="add-edit-form" style="display: none; margin-top: 20px;">
+<h3 id="form-title">新しい問題を追加</h3>
+<div class="form-group">
+<label for="question-input">問題文：</label>
+<textarea id="question-input" placeholder="問題文を入力してください"></textarea>
+</div>
+
+<div class="form-group">
+<label>選択肢：</label>
+<div class="option-group">
+<input type="text" id="option-0" placeholder="選択肢 A" />
+<label><input type="radio" name="correct-answer" value="0" /> 正解</label>
+</div>
+<div class="option-group">
+<input type="text" id="option-1" placeholder="選択肢 B" />
+<label><input type="radio" name="correct-answer" value="1" /> 正解</label>
+</div>
+<div class="option-group">
+<input type="text" id="option-2" placeholder="選択肢 C" />
+<label><input type="radio" name="correct-answer" value="2" /> 正解</label>
+</div>
+</div>
+
+<div class="button-group">
+<button class="btn-primary" id="save-btn" onclick="saveQuestion()">保存</button>
+<button class="btn-secondary" onclick="cancelEdit()">キャンセル</button>
+</div>
+</div>
+
+<h3>登録済みの問題</h3>
+<div id="questions-list"></div>
+</div>
+</div>
+
+<!-- 設定タブ -->
+<div class="tab-content" id="settings">
+<div class="quiz-container">
+<h2>データの管理</h2>
+<div class="success-message" id="success-message-settings"></div>
+<div class="error-message" id="error-message-settings"></div>
+
+<div class="form-group">
+<label>問題データのエクスポート：</label>
+<button class="btn-primary" onclick="exportData()">JSONファイルをダウンロード</button>
+</div>
+
+<div class="form-group">
+<label>問題データのインポート：</label>
+<input type="file" id="import-file" accept=".json" />
+<button class="btn-primary" onclick="importData()">インポート</button>
+</div>
+
+<div class="form-group">
+<button class="btn-danger" onclick="resetData()">すべてリセット（初期状態に戻す）</button>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+// ========================================================================
+// TOEIC L495 トレーニング - 改訂版（問題更新機能付き）
+// ========================================================================
+
+// デフォルトの問題データ
+const defaultQuizData = [
+{
+question: "A: 'The proposal is due tomorrow, but I haven't even finished the data analysis.' B: **'I'd be happy to** stay late and help you with the final review.' Bの『I'd be happy to』が暗示する意図は？",
+options: ["データ分析の遅延に苦情を言う。", "提出期限の延期を提案する。", "レビュー作業を手伝うと申し出る。"],
+answerIndex: 2
+},
+{
+question: "A: 'I tried calling the customer support line, but I was on hold for over thirty minutes.' B: **'Unfortunately,** our call center has been overwhelmed since the software update.' Bの『Unfortunately』が暗示する状況は？",
+options: ["電話がすぐに繋がることを保証している。", "現状の問題に対して遺憾の意を示している。", "ソフトウェアの更新が完了したことを喜んでいる。"],
+answerIndex: 1
+},
+{
+question: "A: 'The 9:00 train to the city is canceled due to heavy rain.' B: 'Oh no. **Is there any other way** to get there before noon?' Bが求めているものは？",
+options: ["雨が止むまで待つこと。", "交通機関の遅延の理由。", "代替の移動手段やルート。"],
+answerIndex: 2
+}
+];
+
+// グローバル変数
+let quizData = [];
+let currentQuestionIndex = 0;
+let editingIndex = -1; // 編集中のインデックス（-1は新規作成）
+
+// ストレージキー
+const STORAGE_KEY = 'toeic_quiz_data';
+
+// ========================================================================
+// 初期化と基本機能
+// ========================================================================
+
+window.onload = function() {
+loadQuizData();
+loadQuestion();
+renderQuestionsList();
+};
+
+function loadQuizData() {
+const stored = localStorage.getItem(STORAGE_KEY);
+if (stored) {
+try {
+quizData = JSON.parse(stored);
+} catch (e) {
+console.error('データの読み込みに失敗しました', e);
+quizData = [...defaultQuizData];
+saveQuizData();
+}
+} else {
+quizData = [...defaultQuizData];
+saveQuizData();
+}
+}
+
+function saveQuizData() {
+localStorage.setItem(STORAGE_KEY, JSON.stringify(quizData));
+}
+
+// ========================================================================
+// タブ切り替え機能
+// ========================================================================
+
+function switchTab(tabName) {
+// すべてのタブコンテンツを非表示
+document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+// 指定されたタブを表示
+document.getElementById(tabName).classList.add('active');
+event.target.classList.add('active');
+
+// 編集タブを切り替えた場合、リストを更新
+if (tabName === 'edit') {
+renderQuestionsList();
+}
+}
+
+// ========================================================================
+// クイズ表示機能
+// ========================================================================
+
+function loadQuestion() {
+if (quizData.length === 0) {
+document.getElementById('question-text').textContent = '問題がまだ登録されていません。「問題の管理」タブから追加してください。';
+document.getElementById('options').innerHTML = '';
+document.getElementById('next-button').style.display = 'none';
+document.getElementById('feedback').style.display = 'none';
+return;
+}
+
+if (currentQuestionIndex >= quizData.length) {
+document.getElementById('question-text').textContent = `全${quizData.length}問完了！お疲れ様でした。`;
+document.getElementById('options').innerHTML = '';
+document.getElementById('next-button').style.display = 'none';
+document.getElementById('feedback').style.display = 'none';
+return;
+}
+
+const currentQuiz = quizData[currentQuestionIndex];
+document.getElementById('question-text').textContent = currentQuiz.question;
+document.getElementById('next-button').textContent = `次の問題へ (${currentQuestionIndex + 1}/${quizData.length})`;
+
+const optionButtons = document.getElementById('options').children;
+for (let i = 0; i < optionButtons.length; i++) {
+optionButtons[i].textContent = currentQuiz.options[i];
+optionButtons[i].disabled = false;
+optionButtons[i].classList.remove('correct', 'incorrect');
+}
+
+document.getElementById('next-button').style.display = 'none';
+document.getElementById('feedback').style.display = 'none';
+}
+
+function checkAnswer(selectedIndex) {
+const currentQuiz = quizData[currentQuestionIndex];
+const feedbackDiv = document.getElementById('feedback');
+const optionButtons = document.getElementById('options').children;
+
+for (let btn of optionButtons) {
+btn.disabled = true;
+}
+
+if (selectedIndex === currentQuiz.answerIndex) {
+feedbackDiv.textContent = '正解！その機能表現の意味をしっかりと理解できています。';
+feedbackDiv.className = 'feedback correct';
+optionButtons[selectedIndex].classList.add('correct');
+} else {
+feedbackDiv.textContent = '不正解。この表現が暗示する意図を再確認しましょう。';
+feedbackDiv.className = 'feedback incorrect';
+optionButtons[selectedIndex].classList.add('incorrect');
+optionButtons[currentQuiz.answerIndex].classList.add('correct');
+}
+
+feedbackDiv.style.display = 'block';
+document.getElementById('next-button').style.display = 'block';
+}
+
+function loadNextQuestion() {
+currentQuestionIndex++;
+loadQuestion();
+}
+
+// ========================================================================
+// 問題の追加・編集・削除機能
+// ========================================================================
+
+function showAddForm() {
+editingIndex = -1;
+document.getElementById('form-title').textContent = '新しい問題を追加';
+document.getElementById('question-input').value = '';
+document.getElementById('option-0').value = '';
+document.getElementById('option-1').value = '';
+document.getElementById('option-2').value = '';
+document.querySelectorAll('input[name="correct-answer"]').forEach(el => el.checked = false);
+document.getElementById('save-btn').textContent = '追加';
+document.getElementById('add-edit-form').style.display = 'block';
+}
+
+function showEditForm(index) {
+editingIndex = index;
+const quiz = quizData[index];
+document.getElementById('form-title').textContent = '問題を編集';
+document.getElementById('question-input').value = quiz.question;
+document.getElementById('option-0').value = quiz.options[0];
+document.getElementById('option-1').value = quiz.options[1];
+document.getElementById('option-2').value = quiz.options[2];
+document.querySelectorAll('input[name="correct-answer"]').forEach(el => el.checked = false);
+document.querySelector(`input[name="correct-answer"][value="${quiz.answerIndex}"]`).checked = true;
+document.getElementById('save-btn').textContent = '更新';
+document.getElementById('add-edit-form').style.display = 'block';
+}
+
+function saveQuestion() {
+const question = document.getElementById('question-input').value.trim();
+const option0 = document.getElementById('option-0').value.trim();
+const option1 = document.getElementById('option-1').value.trim();
+const option2 = document.getElementById('option-2').value.trim();
+const answerRadio = document.querySelector('input[name="correct-answer"]:checked');
+
+// バリデーション
+if (!question) {
+showMessage('error', '問題文を入力してください。', 'edit');
+return;
+}
+if (!option0 || !option1 || !option2) {
+showMessage('error', 'すべての選択肢を入力してください。', 'edit');
+return;
+}
+if (!answerRadio) {
+showMessage('error', '正解を選択してください。', 'edit');
+return;
+}
+
+const newQuiz = {
+question: question,
+options: [option0, option1, option2],
+answerIndex: parseInt(answerRadio.value)
+};
+
+if (editingIndex === -1) {
+// 新規追加
+quizData.push(newQuiz);
+showMessage('success', '問題を追加しました！', 'edit');
+} else {
+// 編集
+quizData[editingIndex] = newQuiz;
+showMessage('success', '問題を更新しました！', 'edit');
+}
+
+saveQuizData();
+cancelEdit();
+renderQuestionsList();
+loadQuestion(); // クイズ表示も更新
+}
+
+function cancelEdit() {
+document.getElementById('add-edit-form').style.display = 'none';
+editingIndex = -1;
+}
+
+function deleteQuestion(index) {
+if (confirm('この問題を削除してもよろしいですか？')) {
+quizData.splice(index, 1);
+saveQuizData();
+renderQuestionsList();
+showMessage('success', '問題を削除しました！', 'edit');
+
+// クイズ表示中の問題を削除した場合は調整
+if (currentQuestionIndex >= quizData.length) {
+currentQuestionIndex = Math.max(0, quizData.length - 1);
+}
+loadQuestion();
+}
+}
+
+// ========================================================================
+// 問題一覧の表示
+// ========================================================================
+
+function renderQuestionsList() {
+const listDiv = document.getElementById('questions-list');
+listDiv.innerHTML = '';
+
+if (quizData.length === 0) {
+listDiv.innerHTML = '<p style="color: #999;">問題がまだ登録されていません。</p>';
+return;
+}
+
+quizData.forEach((quiz, index) => {
+const item = document.createElement('div');
+item.className = 'question-item';
+item.innerHTML = `
+<div class="question-item-text">${index + 1}. ${quiz.question.substring(0, 50)}...</div>
+<div class="question-item-options">
+<strong>選択肢:</strong> A) ${quiz.options[0]} / B) ${quiz.options[1]} / C) ${quiz.options[2]}<br>
+<strong>正解:</strong> ${String.fromCharCode(65 + quiz.answerIndex)}) ${quiz.options[quiz.answerIndex]}
+</div>
+<div class="question-item-actions">
+<button class="btn-edit" onclick="showEditForm(${index})">編集</button>
+<button class="btn-delete" onclick="deleteQuestion(${index})">削除</button>
+</div>
+`;
+listDiv.appendChild(item);
+});
+}
+
+// ========================================================================
+// インポート・エクスポート機能
+// ========================================================================
+
+function exportData() {
+const dataStr = JSON.stringify(quizData, null, 2);
+const dataBlob = new Blob([dataStr], { type: 'application/json' });
+const url = URL.createObjectURL(dataBlob);
+const link = document.createElement('a');
+link.href = url;
+link.download = `toeic_quiz_${new Date().toISOString().split('T')[0]}.json`;
+link.click();
+URL.revokeObjectURL(url);
+showMessage('success', 'データをエクスポートしました！', 'settings');
+}
+
+function importData() {
+const fileInput = document.getElementById('import-file');
+if (!fileInput.files.length) {
+showMessage('error', 'ファイルを選択してください。', 'settings');
+return;
+}
+
+const file = fileInput.files[0];
+const reader = new FileReader();
+
+reader.onload = function(e) {
+try {
+const imported = JSON.parse(e.target.result);
+if (Array.isArray(imported) && imported.every(item => item.question && item.options && typeof item.answerIndex === 'number')) {
+quizData = imported;
+saveQuizData();
+showMessage('success', 'データをインポートしました！', 'settings');
+renderQuestionsList();
+loadQuestion();
+fileInput.value = '';
+} else {
+showMessage('error', 'ファイル形式が正しくありません。', 'settings');
+}
+} catch (error) {
+showMessage('error', 'ファイルの読み込みに失敗しました。', 'settings');
+}
+};
+
+reader.readAsText(file);
+}
+
+function resetData() {
+if (confirm('すべてのデータをリセットして、初期状態に戻してもよろしいですか？')) {
+quizData = [...defaultQuizData];
+saveQuizData();
+currentQuestionIndex = 0;
+showMessage('success', 'データをリセットしました！', 'settings');
+renderQuestionsList();
+loadQuestion();
+}
+}
+
+// ========================================================================
+// ユーティリティ関数
+// ========================================================================
+
+function showMessage(type, message, tab) {
+const elementId = tab === 'settings' ? `${type}-message-settings` : `${type}-message`;
+const element = document.getElementById(elementId);
+element.textContent = message;
+element.style.display = 'block';
+
+setTimeout(() => {
+element.style.display = 'none';
+}, 3000);
+}
+</script>
+
+</body>
+</html>
