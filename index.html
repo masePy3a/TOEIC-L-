@@ -445,6 +445,13 @@ border-radius: 4px;
 </div>
 
 <div class="form-group">
+<label>端末別に保存：</label>
+<button class="btn-primary" onclick="saveAsDevice('pc')">保存（PC）</button>
+<button class="btn-primary" onclick="saveAsDevice('mobile')">保存（スマホ）</button>
+<div id="last-saved-info" style="margin-top:8px;color:#333;">最終保存: なし</div>
+</div>
+
+<div class="form-group">
 <label>問題データのインポート：</label>
 <input type="file" id="import-file" accept=".json" />
 <button class="btn-primary" onclick="importData()">インポート</button>
@@ -507,6 +514,7 @@ loadVoiceSettings();
 loadQuizData();
 loadQuestion();
 renderQuestionsList();
+updateLastSavedUI();
 };
 
 function loadQuizData() {
@@ -893,16 +901,58 @@ listDiv.appendChild(item);
 // インポート・エクスポート機能
 // ========================================================================
 
-function exportData() {
+function exportData(filename = null, showMsg = true) {
 const dataStr = JSON.stringify(quizData, null, 2);
 const dataBlob = new Blob([dataStr], { type: 'application/json' });
 const url = URL.createObjectURL(dataBlob);
 const link = document.createElement('a');
 link.href = url;
-link.download = `toeic_quiz_${new Date().toISOString().split('T')[0]}.json`;
+const defaultName = `toeic_quiz_${new Date().toISOString().split('T')[0]}.json`;
+link.download = filename || defaultName;
 link.click();
 URL.revokeObjectURL(url);
-showMessage('success', 'データをエクスポートしました！', 'settings');
+if (showMsg) showMessage('success', 'データをエクスポートしました！', 'settings');
+}
+
+// 端末別に保存（ローカル保存＋ダウンロード）
+function saveAsDevice(device) {
+// device: 'pc' or 'mobile'
+saveQuizData();
+const now = new Date().toISOString();
+const meta = { device: device, time: now, count: quizData.length };
+localStorage.setItem('toeic_last_saved', JSON.stringify(meta));
+updateLastSavedUI();
+// ダウンロードファイル名を作成
+const safeTime = now.replace(/:/g, '').replace(/\./g, '-');
+const filename = `toeic_quiz_${device}_${safeTime}.json`;
+exportData(filename, false);
+showMessage('success', `データを保存しました（${device}）。ダウンロードを開始しました。`, 'settings');
+}
+
+function updateLastSavedUI() {
+const container = document.getElementById('last-saved-info');
+if (!container) return;
+const raw = localStorage.getItem('toeic_last_saved');
+if (!raw) {
+container.textContent = '最終保存: なし';
+return;
+}
+try {
+const meta = JSON.parse(raw);
+const deviceLabel = meta.device === 'pc' ? 'PC' : 'スマホ';
+container.textContent = `最終保存: ${deviceLabel} - ${formatTimestamp(meta.time)} (問題数: ${meta.count})`;
+} catch (e) {
+container.textContent = '最終保存: 不明';
+}
+}
+
+function formatTimestamp(iso) {
+try {
+const d = new Date(iso);
+return `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+} catch (e) {
+return iso;
+}
 }
 
 function importData() {
