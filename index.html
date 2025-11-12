@@ -295,6 +295,254 @@ padding: 8px;
 border: 1px solid #ccc;
 border-radius: 4px;
 }
+
+/* ========================================================================
+   モバイル対応（画面幅 768px 以下）
+   ======================================================================== */
+@media (max-width: 768px) {
+body {
+padding: 10px;
+}
+
+.container {
+max-width: 100%;
+}
+
+h1 {
+font-size: 1.2em;
+margin: 10px 0;
+}
+
+.tab-buttons {
+gap: 5px;
+}
+
+.tab-buttons button {
+padding: 8px 12px;
+font-size: 0.85em;
+flex: 1;
+min-height: 44px;
+}
+
+.quiz-container {
+padding: 15px;
+}
+
+.question-header {
+flex-direction: column;
+align-items: stretch;
+gap: 8px;
+}
+
+.question-text {
+font-size: 1em;
+margin-bottom: 15px;
+padding: 12px;
+}
+
+.voice-button {
+padding: 12px;
+font-size: 0.9em;
+min-height: 44px;
+width: 100%;
+justify-content: center;
+}
+
+.voice-button-small {
+min-width: 44px !important;
+min-height: 44px !important;
+padding: 10px !important;
+}
+
+.option-item {
+flex-direction: column;
+}
+
+.option-item button {
+padding: 12px;
+font-size: 0.95em;
+min-height: 44px;
+}
+
+.option-item button:first-child {
+flex: 1;
+}
+
+.feedback {
+font-size: 0.9em;
+padding: 12px;
+margin-top: 15px;
+}
+
+.next-button {
+min-height: 44px;
+font-size: 0.95em;
+padding: 12px;
+}
+
+.form-group {
+margin-bottom: 15px;
+}
+
+.form-group input,
+.form-group textarea {
+font-size: 16px;
+padding: 10px;
+}
+
+.button-group {
+flex-direction: column;
+gap: 8px;
+}
+
+.button-group button {
+min-height: 44px;
+font-size: 0.9em;
+}
+
+.btn-primary, .btn-danger, .btn-secondary, .btn-edit, .btn-delete {
+min-height: 44px;
+padding: 10px;
+}
+
+.option-group {
+flex-direction: column;
+}
+
+.option-group input {
+margin-bottom: 8px;
+}
+
+.option-group label {
+margin-bottom: 8px;
+}
+
+.question-item {
+padding: 12px;
+margin-bottom: 12px;
+}
+
+.question-item-actions {
+flex-direction: column;
+gap: 8px;
+}
+
+.question-item-actions button {
+min-height: 44px;
+padding: 10px;
+}
+
+#stopwatch-container {
+padding: 12px;
+font-size: 0.9em;
+}
+
+#stopwatch-container > div:nth-child(2) {
+word-break: break-word;
+line-height: 1.5;
+}
+
+#stopwatch-container > div:first-child {
+font-size: 1.8em;
+}
+
+#stopwatch-container button {
+flex: 1;
+min-height: 44px;
+font-size: 0.85em;
+padding: 10px;
+}
+
+#hint-box {
+padding: 10px;
+font-size: 0.9em;
+margin-bottom: 15px;
+}
+
+.voice-settings {
+padding: 12px;
+}
+
+.voice-settings input[type="range"] {
+width: 100%;
+height: 6px;
+}
+
+.success-message,
+.error-message {
+font-size: 0.9em;
+padding: 10px;
+}
+
+#import-file {
+font-size: 0.9em;
+}
+}
+
+/* ========================================================================
+   超小型画面対応（画面幅 480px 以下）
+   ======================================================================== */
+@media (max-width: 480px) {
+body {
+padding: 8px;
+}
+
+h1 {
+font-size: 1em;
+}
+
+.tab-buttons button {
+padding: 6px 8px;
+font-size: 0.75em;
+min-height: 40px;
+}
+
+.question-text {
+font-size: 0.9em;
+padding: 10px;
+}
+
+.voice-button {
+padding: 10px;
+font-size: 0.8em;
+min-height: 40px;
+}
+
+.option-item button {
+font-size: 0.85em;
+min-height: 40px;
+padding: 10px;
+}
+
+.next-button {
+min-height: 40px;
+font-size: 0.85em;
+}
+
+.button-group button {
+min-height: 40px;
+font-size: 0.8em;
+}
+
+#stopwatch-container > div:first-child {
+font-size: 1.5em;
+}
+
+#stopwatch-container button {
+min-height: 40px;
+font-size: 0.75em;
+}
+
+.form-group input,
+.form-group textarea {
+font-size: 16px;
+padding: 8px;
+}
+
+.quiz-container {
+padding: 10px;
+}
+}
 </style>
 <!-- quiz-data.js を読み込み（外部ファイルから問題データを取得） -->
 <script src="quiz-data.js"></script>
@@ -334,17 +582,17 @@ border-radius: 4px;
 <div style="font-size: 2em; font-weight: bold; color: #007bff; margin-bottom: 10px;">
 ⏱️ <span id="stopwatch-time">00:00</span>
 </div>
-<div style="font-size: 0.9em; color: #555; margin-bottom: 10px;">
-目標時間: <span id="target-time">1:35</span> (1問あたり約1分35秒) | 経過: <span id="elapsed-questions">0</span>/<span id="total-questions">28</span>
+<div style="font-size: 0.9em; color: #555; margin-bottom: 10px; word-break: break-word;">
+目標時間: <span id="target-time">1:35</span> (1問あたり約1分35秒)<br>経過: <span id="elapsed-questions">0</span>/<span id="total-questions">28</span>
 </div>
 <div style="width: 100%; background-color: #ddd; height: 8px; border-radius: 4px; margin-bottom: 10px; overflow: hidden;">
 <div id="progress-bar" style="width: 0%; height: 100%; background-color: #28a745; transition: width 0.3s;"></div>
 </div>
-<div style="display: flex; gap: 8px; justify-content: center;">
-<button onclick="toggleStopwatch()" id="stopwatch-btn" style="padding: 8px 16px; background-color: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em;">
+<div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+<button onclick="toggleStopwatch()" id="stopwatch-btn" style="padding: 8px 16px; background-color: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em; min-height: 44px; flex: 1; min-width: 120px;">
 ▶️ 開始
 </button>
-<button onclick="resetStopwatch()" style="padding: 8px 16px; background-color: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em;">
+<button onclick="resetStopwatch()" style="padding: 8px 16px; background-color: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em; min-height: 44px; flex: 1; min-width: 120px;">
 🔄 リセット
 </button>
 </div>
