@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TOEIC RTLT: 機能表現クイズ（音声機能付き）</title>
+<!-- Favicon (place your company logo file as logo.png in the same folder) -->
+<link rel="icon" href="logo.png" />
 <style>
 /* スマホ向けに使いやすいシンプルなデザイン */
 body {
@@ -296,6 +298,22 @@ border: 1px solid #ccc;
 border-radius: 4px;
 }
 
+/* Company logo in header */
+#company-logo { height: 48px; width: auto; vertical-align: middle; margin-right: 10px; border-radius: 6px; }
+.home-logo-img { height: 28px; width: auto; display: block; }
+
+/* Mobile home button styles */
+.mobile-home { display: none; margin: 10px 0 18px; }
+.home-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.home-btn { background: linear-gradient(180deg,#fff,#f1f7ff); border: 1px solid #d0e4ff; border-radius: 12px; padding: 10px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; cursor:pointer; }
+.home-icon { font-size: 1.2em; }
+.home-label { font-size: 0.85em; color:#333; }
+
+@media (max-width: 768px) {
+	.mobile-home { display:block; }
+	.home-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
 /* ========================================================================
    モバイル対応（画面幅 768px 以下）
    ======================================================================== */
@@ -491,6 +509,11 @@ h1 {
 font-size: 1em;
 }
 
+/* scale down header logo and mobile home logo on very small screens */
+#company-logo { height: 32px; }
+.home-logo-img { height: 20px; }
+.home-label { font-size: 0.7em; }
+
 .tab-buttons button {
 padding: 6px 8px;
 font-size: 0.75em;
@@ -550,7 +573,30 @@ padding: 10px;
 <body>
 
 <div class="container">
-<h1>🎤 TOEIC L495 トレーニング（音声機能付き）</h1>
+<h1><img id="company-logo" src="logo.png" alt="company logo" onerror="this.style.display='none'"/> 🎤 TOEIC L495 トレーニング（音声機能付き）</h1>
+
+<!-- Mobile home screen quick-actions (shown on small screens) -->
+<div class="mobile-home" id="mobile-home">
+	<div class="home-grid">
+			<button class="home-btn" onclick="openHomeAction('quiz')">
+				<img class="home-logo-img" src="logo.png" alt="logo" onerror="this.style.display='none'" />
+				<div class="home-icon">▶️</div>
+				<div class="home-label">Start Quiz</div>
+			</button>
+		<button class="home-btn" onclick="openHomeAction('edit')">
+			<div class="home-icon">✏️</div>
+			<div class="home-label">Manage</div>
+		</button>
+		<button class="home-btn" onclick="openHomeAction('voice-settings')">
+			<div class="home-icon">🎤</div>
+			<div class="home-label">Voice</div>
+		</button>
+		<button class="home-btn" onclick="openHomeAction('settings')">
+			<div class="home-icon">⚙️</div>
+			<div class="home-label">Data</div>
+		</button>
+	</div>
+</div>
 
 <!-- タブボタン -->
 <div class="tab-buttons">
@@ -1014,10 +1060,22 @@ document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('act
 document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 
 document.getElementById(tabName).classList.add('active');
-event.target.classList.add('active');
+try {
+	event.target.classList.add('active');
+} catch (e) {
+	// when called programmatically from mobile home buttons, event may be undefined
+	const btns = document.querySelectorAll('.tab-btn');
+	btns.forEach(b => { if (b.textContent && b.textContent.toLowerCase().includes(tabName.split('-')[0])) b.classList.add('active'); });
+}
 
 if (tabName === 'edit') {
 renderQuestionsList();
+}
+
+function openHomeAction(tabName) {
+	// ensure mobile home hides after navigating
+	switchTab(tabName);
+	window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 }
 
