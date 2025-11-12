@@ -296,6 +296,8 @@ border: 1px solid #ccc;
 border-radius: 4px;
 }
 </style>
+<!-- quiz-data.js を読み込み（外部ファイルから問題データを取得） -->
+<script src="quiz-data.js"></script>
 </head>
 <body>
 
@@ -318,6 +320,34 @@ border-radius: 4px;
 <button class="voice-button" id="question-voice-btn" onclick="speakQuestion()" title="問題を読み上げます">
 🔊
 </button>
+<button class="voice-button" id="hint-btn" onclick="showHint()" title="ヒントを表示します" style="background-color: #ffc107; color: black;">
+💡 ヒント
+</button>
+</div>
+
+<div id="hint-box" style="display: none; background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; margin-bottom: 20px; border-radius: 4px; color: #856404;">
+<strong>ヒント:</strong> <span id="hint-text"></span>
+</div>
+
+<!-- ストップウォッチ機能 -->
+<div id="stopwatch-container" style="background-color: #e8f4f8; border: 2px solid #007bff; padding: 15px; margin-bottom: 20px; border-radius: 8px; text-align: center;">
+<div style="font-size: 2em; font-weight: bold; color: #007bff; margin-bottom: 10px;">
+⏱️ <span id="stopwatch-time">00:00</span>
+</div>
+<div style="font-size: 0.9em; color: #555; margin-bottom: 10px;">
+目標時間: <span id="target-time">1:35</span> (1問あたり約1分35秒) | 経過: <span id="elapsed-questions">0</span>/<span id="total-questions">28</span>
+</div>
+<div style="width: 100%; background-color: #ddd; height: 8px; border-radius: 4px; margin-bottom: 10px; overflow: hidden;">
+<div id="progress-bar" style="width: 0%; height: 100%; background-color: #28a745; transition: width 0.3s;"></div>
+</div>
+<div style="display: flex; gap: 8px; justify-content: center;">
+<button onclick="toggleStopwatch()" id="stopwatch-btn" style="padding: 8px 16px; background-color: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em;">
+▶️ 開始
+</button>
+<button onclick="resetStopwatch()" style="padding: 8px 16px; background-color: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em;">
+🔄 リセット
+</button>
+</div>
 </div>
 
 <div class="options" id="options">
@@ -445,6 +475,11 @@ border-radius: 4px;
 </div>
 
 <div class="form-group">
+<label>キャッシュとデータの管理：</label>
+<button class="btn-primary" onclick="forceClearAndReloadExternal()" style="background-color: #ff9800;">キャッシュをクリア＆外部ファイルを強制読み込み</button>
+</div>
+
+<div class="form-group">
 <label>端末別に保存：</label>
 <button class="btn-primary" onclick="saveAsDevice('pc')">保存（PC）</button>
 <button class="btn-primary" onclick="saveAsDevice('mobile')">保存（スマホ）</button>
@@ -470,29 +505,41 @@ border-radius: 4px;
 // ========================================================================
 
 // デフォルトの問題データ
-const defaultQuizData = [
-{
-question: "A: 'The proposal is due tomorrow, but I haven't even finished the data analysis.' B: **'I'd be happy to** stay late and help you with the final review.' Bの『I'd be happy to』が暗示する意図は？",
-options: ["データ分析の遅延に苦情を言う。", "提出期限の延期を提案する。", "レビュー作業を手伝うと申し出る。"],
-answerIndex: 2
-},
-{
-question: "A: 'I tried calling the customer support line, but I was on hold for over thirty minutes.' B: **'Unfortunately,** our call center has been overwhelmed since the software update.' Bの『Unfortunately』が暗示する状況は？",
-options: ["電話がすぐに繋がることを保証している。", "現状の問題に対して遺憾の意を示している。", "ソフトウェアの更新が完了したことを喜んでいる。"],
-answerIndex: 1
-},
-{
-question: "A: 'The 9:00 train to the city is canceled due to heavy rain.' B: 'Oh no. **Is there any other way** to get there before noon?' Bが求めているものは？",
-options: ["雨が止むまで待つこと。", "交通機関の遅延の理由。", "代替の移動手段やルート。"],
-answerIndex: 2
+// デフォルトの問題データ（quiz data.js から読み込まれる externalQuizData をコピー）
+let defaultQuizData = [];
+
+// 初期化時に quiz data.js から読み込んだ externalQuizData を使用
+// 文字列ハッシュ（簡易）
+function computeHash(str) {
+	let hash = 5381;
+	for (let i = 0; i < str.length; i++) {
+		hash = ((hash << 5) + hash) + str.charCodeAt(i); /* hash * 33 + c */
+		hash = hash & 0xFFFFFFFF;
+	}
+	return hash.toString();
 }
-];
+
+function initializeDefaultData() {
+	if (typeof externalQuizData !== 'undefined' && Array.isArray(externalQuizData)) {
+		defaultQuizData = [...externalQuizData];
+	} else {
+		// フォールバック: externalQuizData が読み込まれない場合は空配列にします。
+		// 実際の問題は `quiz-data.js` に定義してください。
+		defaultQuizData = [];
+	}
+}
 
 // グローバル変数
 let quizData = [];
 let currentQuestionIndex = 0;
 let editingIndex = -1;
 let isSpeaking = false;
+
+// ストップウォッチ用変数
+let stopwatchRunning = false;
+let stopwatchSeconds = 0;
+let stopwatchInterval = null;
+const TARGET_SECONDS_PER_QUESTION = 95; // 1分35秒 (実際のTOEIC L495相当)
 
 // ストレージキー
 const STORAGE_KEY = 'toeic_quiz_data';
@@ -518,19 +565,41 @@ updateLastSavedUI();
 };
 
 function loadQuizData() {
-const stored = localStorage.getItem(STORAGE_KEY);
-if (stored) {
-try {
-quizData = JSON.parse(stored);
-} catch (e) {
-console.error('データの読み込みに失敗しました', e);
-quizData = [...defaultQuizData];
-saveQuizData();
-}
-} else {
-quizData = [...defaultQuizData];
-saveQuizData();
-}
+// 外部ファイルから defaultQuizData を初期化
+initializeDefaultData();
+	// compute external data hash to detect updates in quiz data.js
+	const extHash = computeHash(JSON.stringify(defaultQuizData));
+	const prevExtHash = localStorage.getItem('toeic_external_hash');
+
+	const stored = localStorage.getItem(STORAGE_KEY);
+	if (stored) {
+		try {
+			// if external data changed since last time, ask user whether to replace local data
+			if (prevExtHash && prevExtHash !== extHash) {
+				const keep = confirm('外部の quiz-data.js が更新されています。ブラウザに保存されている問題を外部データで上書きしますか？\n[OK] 上書きする（外部データを採用）\n[キャンセル] 現在のブラウザデータを保持');
+				if (keep) {
+					quizData = [...defaultQuizData];
+					saveQuizData();
+					localStorage.setItem('toeic_external_hash', extHash);
+				} else {
+					quizData = JSON.parse(stored);
+				}
+			} else {
+				quizData = JSON.parse(stored);
+				// if no previous hash stored, set it now
+				if (!prevExtHash) localStorage.setItem('toeic_external_hash', extHash);
+			}
+		} catch (e) {
+			console.error('データの読み込みに失敗しました', e);
+			quizData = [...defaultQuizData];
+			saveQuizData();
+			localStorage.setItem('toeic_external_hash', extHash);
+		}
+	} else {
+		quizData = [...defaultQuizData];
+		saveQuizData();
+		localStorage.setItem('toeic_external_hash', extHash);
+	}
 }
 
 function saveQuizData() {
@@ -715,6 +784,8 @@ document.getElementById('options').innerHTML = '';
 document.getElementById('next-button').style.display = 'none';
 document.getElementById('feedback').style.display = 'none';
 document.getElementById('question-voice-btn').style.display = 'none';
+document.getElementById('hint-box').style.display = 'none';
+document.getElementById('hint-btn').style.display = 'none';
 return;
 }
 
@@ -724,6 +795,8 @@ document.getElementById('options').innerHTML = '';
 document.getElementById('next-button').style.display = 'none';
 document.getElementById('feedback').style.display = 'none';
 document.getElementById('question-voice-btn').style.display = 'none';
+document.getElementById('hint-box').style.display = 'none';
+document.getElementById('hint-btn').style.display = 'none';
 return;
 }
 
@@ -745,7 +818,9 @@ optionsDiv.appendChild(optionItem);
 
 document.getElementById('next-button').style.display = 'none';
 document.getElementById('feedback').style.display = 'none';
+document.getElementById('hint-box').style.display = 'none';
 document.getElementById('question-voice-btn').style.display = 'block';
+document.getElementById('hint-btn').style.display = 'block';
 }
 
 function checkAnswer(selectedIndex) {
@@ -762,7 +837,9 @@ feedbackDiv.textContent = '正解！その機能表現の意味をしっかり�
 feedbackDiv.className = 'feedback correct';
 optionButtons[selectedIndex].classList.add('correct');
 } else {
-feedbackDiv.textContent = '不正解。この表現が暗示する意図を再確認しましょう。';
+const correctOptionText = currentQuiz.options[currentQuiz.answerIndex];
+const correctAnswerLabel = String.fromCharCode(65 + currentQuiz.answerIndex); // A, B, C
+feedbackDiv.innerHTML = `不正解。この表現が暗示する意図を再確認しましょう。<br><br><strong>正解: ${correctAnswerLabel}) ${correctOptionText}</strong>`;
 feedbackDiv.className = 'feedback incorrect';
 optionButtons[selectedIndex].classList.add('incorrect');
 optionButtons[currentQuiz.answerIndex].classList.add('correct');
@@ -774,7 +851,84 @@ document.getElementById('next-button').style.display = 'block';
 
 function loadNextQuestion() {
 currentQuestionIndex++;
+updateStopwatchDisplay(); // ストップウォッチ表示を更新
 loadQuestion();
+}
+
+function showHint() {
+if (quizData.length === 0 || currentQuestionIndex >= quizData.length) return;
+const currentQuiz = quizData[currentQuestionIndex];
+const hintBox = document.getElementById('hint-box');
+const hintText = document.getElementById('hint-text');
+
+if (currentQuiz.hint) {
+hintText.textContent = currentQuiz.hint;
+hintBox.style.display = 'block';
+} else {
+hintText.textContent = 'ヒントはありません。';
+hintBox.style.display = 'block';
+}
+}
+
+// ========================================================================
+// ストップウォッチ機能
+// ========================================================================
+
+function toggleStopwatch() {
+if (stopwatchRunning) {
+stopwatchRunning = false;
+clearInterval(stopwatchInterval);
+document.getElementById('stopwatch-btn').textContent = '▶️ 再開';
+} else {
+stopwatchRunning = true;
+document.getElementById('stopwatch-btn').textContent = '⏸️ 一時停止';
+stopwatchInterval = setInterval(updateStopwatch, 1000);
+}
+}
+
+function updateStopwatch() {
+stopwatchSeconds++;
+updateStopwatchDisplay();
+}
+
+function resetStopwatch() {
+stopwatchRunning = false;
+stopwatchSeconds = 0;
+clearInterval(stopwatchInterval);
+document.getElementById('stopwatch-btn').textContent = '▶️ 開始';
+updateStopwatchDisplay();
+}
+
+function updateStopwatchDisplay() {
+const minutes = Math.floor(stopwatchSeconds / 60);
+const seconds = stopwatchSeconds % 60;
+document.getElementById('stopwatch-time').textContent = 
+`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+// 目標時間を計算（問題数 × 1問あたり時間）
+const totalQuestions = quizData.length;
+const targetTotalSeconds = totalQuestions * TARGET_SECONDS_PER_QUESTION;
+document.getElementById('total-questions').textContent = totalQuestions;
+document.getElementById('elapsed-questions').textContent = currentQuestionIndex + 1;
+
+// ターゲット時間表示
+const targetMin = Math.floor(targetTotalSeconds / 60);
+const targetSec = targetTotalSeconds % 60;
+document.getElementById('target-time').textContent = 
+`${targetMin}:${targetSec.toString().padStart(2, '0')}`;
+
+// プログレスバー更新
+const progressPercent = Math.min(100, (stopwatchSeconds / targetTotalSeconds) * 100);
+document.getElementById('progress-bar').style.width = progressPercent + '%';
+
+// 時間超過時の色変更
+if (stopwatchSeconds > targetTotalSeconds) {
+document.getElementById('progress-bar').style.backgroundColor = '#ff6b6b';
+} else if (stopwatchSeconds > targetTotalSeconds * 0.8) {
+document.getElementById('progress-bar').style.backgroundColor = '#ffc107';
+} else {
+document.getElementById('progress-bar').style.backgroundColor = '#28a745';
+}
 }
 
 // ========================================================================
@@ -987,11 +1141,12 @@ reader.readAsText(file);
 }
 
 function resetData() {
-if (confirm('すべてのデータをリセットして、初期状態に戻してもよろしいですか？')) {
+	if (confirm('すべてのデータをリセットして、外部ファイル（quiz-data.js）の初期状態に戻してもよろしいですか？')) {
+initializeDefaultData();
 quizData = [...defaultQuizData];
 saveQuizData();
 currentQuestionIndex = 0;
-showMessage('success', 'データをリセットしました！', 'settings');
+	showMessage('success', 'データをリセットしました（quiz-data.js から読み込まれました）！', 'settings');
 renderQuestionsList();
 loadQuestion();
 }
@@ -1000,6 +1155,21 @@ loadQuestion();
 // ========================================================================
 // ユーティリティ関数
 // ========================================================================
+
+// キャッシュをクリアして外部ファイルを強制読み込み
+function forceClearAndReloadExternal() {
+	localStorage.removeItem(STORAGE_KEY);
+	localStorage.removeItem('toeic_external_hash');
+	initializeDefaultData();
+	quizData = [...defaultQuizData];
+	saveQuizData();
+	const extHash = computeHash(JSON.stringify(defaultQuizData));
+	localStorage.setItem('toeic_external_hash', extHash);
+	currentQuestionIndex = 0;
+	renderQuestionsList();
+	loadQuestion();
+	showMessage('success', `キャッシュをクリアしました！外部ファイル（quiz-data.js）から${quizData.length}問を読み込みました。`, 'settings');
+}
 
 function showMessage(type, message, tab) {
 const elementId = tab === 'settings' ? `${type}-message-settings` : tab === 'voice' ? `${type}-message-voice` : `${type}-message`;
